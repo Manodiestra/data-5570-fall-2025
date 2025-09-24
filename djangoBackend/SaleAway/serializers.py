@@ -8,3 +8,5 @@ class ListingSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'list_date', 'last_edited_date']
 
 
+
+
