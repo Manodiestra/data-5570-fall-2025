@@ -16,28 +16,38 @@ export default function ItemListingScreen() {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
 
+  const showAlert = (title, message, buttons) => {
+    if (Platform.OS === 'web') {
+      // Use browser's native alert for web
+      alert(`${title}: ${message}`);
+    } else {
+      // Use React Native Alert for mobile platforms
+      Alert.alert(title, message, buttons);
+    }
+  };
+
   const handleSubmit = () => {
+    console.log('handleSubmit');
     if (!itemName.trim() || !description.trim() || !price.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
+      showAlert('Error', 'Please fill in all fields');
       return;
     }
 
     const numericPrice = parseFloat(price);
     if (isNaN(numericPrice) || numericPrice <= 0) {
-      Alert.alert('Error', 'Please enter a valid price');
+      showAlert('Error', 'Please enter a valid price');
       return;
     }
 
-    // Here you would typically save the item to your backend/database
-    Alert.alert(
+    showAlert(
       'Success',
       `Item "${itemName}" has been listed for $${numericPrice.toFixed(2)}`,
-      [{ text: 'OK', onPress: () => {
-        setItemName('');
-        setDescription('');
-        setPrice('');
-      }}]
+      [{ text: 'OK' }]
     );
+
+    setItemName('');
+    setDescription('');
+    setPrice('');
   };
 
   return (
