@@ -10,11 +10,14 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { router } from 'expo-router';
+import ListItem from '../components/ListItem';
 
 export default function ItemListingScreen() {
   const [itemName, setItemName] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
+  const [items, setItems] = useState([]);
 
   const showAlert = (title, message, buttons) => {
     if (Platform.OS === 'web') {
@@ -39,6 +42,18 @@ export default function ItemListingScreen() {
       return;
     }
 
+    // Create new item object
+    const newItem = {
+      id: Date.now().toString(), // Simple ID generation
+      name: itemName.trim(),
+      description: description.trim(),
+      price: numericPrice,
+      createdAt: new Date().toISOString(),
+    };
+
+    // Add item to the items array
+    setItems(prevItems => [...prevItems, newItem]);
+    // Send item to backend
     showAlert(
       'Success',
       `Item "${itemName}" has been listed for $${numericPrice.toFixed(2)}`,
@@ -59,6 +74,12 @@ export default function ItemListingScreen() {
         <View style={styles.header}>
           <Text style={styles.title}>Create Item</Text>
           <Text style={styles.subtitle}>List your item for sale</Text>
+          <TouchableOpacity 
+            style={styles.settingsButton} 
+            onPress={() => router.push('/Settings')}
+          >
+            <Text style={styles.settingsButtonText}>Settings</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.form}>
@@ -108,6 +129,16 @@ export default function ItemListingScreen() {
             <Text style={styles.submitButtonText}>List Item</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Items List Section */}
+        {items.length > 0 && (
+          <View style={styles.itemsSection}>
+            <Text style={styles.itemsSectionTitle}>Listed Items</Text>
+            {items.map((item) => (
+              <ListItem key={item.id} item={item} />
+            ))}
+          </View>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -214,6 +245,31 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: 'white',
     fontSize: 18,
+    fontWeight: '600',
+  },
+  itemsSection: {
+    marginTop: 30,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#e1e8ed',
+  },
+  itemsSectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  settingsButton: {
+    backgroundColor: '#95a5a6',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginTop: 16,
+  },
+  settingsButtonText: {
+    color: 'white',
+    fontSize: 14,
     fontWeight: '600',
   },
 });
