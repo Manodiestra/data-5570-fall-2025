@@ -1,157 +1,64 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { router } from 'expo-router';
+import { useSelector } from 'react-redux';
 import ListItem from '../components/ListItem';
 
 export default function ItemListingScreen() {
-  const [itemName, setItemName] = useState('');
-  const [description, setDescription] = useState('');
-  const [price, setPrice] = useState('');
-  const [items, setItems] = useState([]);
-
-  const showAlert = (title, message, buttons) => {
-    if (Platform.OS === 'web') {
-      // Use browser's native alert for web
-      alert(`${title}: ${message}`);
-    } else {
-      // Use React Native Alert for mobile platforms
-      Alert.alert(title, message, buttons);
-    }
-  };
-
-  const handleSubmit = () => {
-    console.log('handleSubmit');
-    if (!itemName.trim() || !description.trim() || !price.trim()) {
-      showAlert('Error', 'Please fill in all fields');
-      return;
-    }
-
-    const numericPrice = parseFloat(price);
-    if (isNaN(numericPrice) || numericPrice <= 0) {
-      showAlert('Error', 'Please enter a valid price');
-      return;
-    }
-
-    // Create new item object
-    const newItem = {
-      id: Date.now().toString(), // Simple ID generation
-      name: itemName.trim(),
-      description: description.trim(),
-      price: numericPrice,
-      createdAt: new Date().toISOString(),
-    };
-
-    // Add item to the items array
-    setItems(prevItems => [...prevItems, newItem]);
-    // Send item to backend
-    showAlert(
-      'Success',
-      `Item "${itemName}" has been listed for $${numericPrice.toFixed(2)}`,
-      [{ text: 'OK' }]
-    );
-
-    setItemName('');
-    setDescription('');
-    setPrice('');
+  const items = useSelector((state) => state.listItems.items);
+  
+  const handleAddItem = () => {
+    router.push('/AddListItem');
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Create Item</Text>
-          <Text style={styles.subtitle}>List your item for sale</Text>
-          <TouchableOpacity 
-            style={styles.settingsButton} 
-            onPress={() => router.push('/Settings')}
-          >
-            <Text style={styles.settingsButtonText}>Settings</Text>
-          </TouchableOpacity>
+    <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Item Listings</Text>
+        <Text style={styles.subtitle}>View and manage your listed items</Text>
+        <TouchableOpacity 
+          style={styles.addButton} 
+          onPress={handleAddItem}
+        >
+          <Text style={styles.addButtonText}>+ Add New Item</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.settingsButton} 
+          onPress={() => router.push('/Settings')}
+        >
+          <Text style={styles.settingsButtonText}>Settings</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Items List Section */}
+      {items.length > 0 ? (
+        <View style={styles.itemsSection}>
+          <Text style={styles.itemsSectionTitle}>Your Listed Items ({items.length})</Text>
+          {items.map((item) => (
+            <ListItem key={item.id} item={item} />
+          ))}
         </View>
-
-        <View style={styles.form}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Item Name *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter item name"
-              value={itemName}
-              onChangeText={setItemName}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Description *</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Describe your item..."
-              value={description}
-              onChangeText={setDescription}
-              multiline
-              numberOfLines={4}
-              maxLength={500}
-              textAlignVertical="top"
-            />
-            <Text style={styles.characterCount}>
-              {description.length}/500 characters
-            </Text>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Price *</Text>
-            <View style={styles.priceContainer}>
-              <Text style={styles.dollarSign}>$</Text>
-              <TextInput
-                style={[styles.input, styles.priceInput]}
-                placeholder="10"
-                value={price}
-                onChangeText={setPrice}
-                keyboardType="decimal-pad"
-                maxLength={10}
-              />
-            </View>
-          </View>
-
-          <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-            <Text style={styles.submitButtonText}>List Item</Text>
-          </TouchableOpacity>
+      ) : (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyStateTitle}>No items listed yet</Text>
+          <Text style={styles.emptyStateSubtitle}>Tap "Add New Item" to get started</Text>
         </View>
-
-        {/* Items List Section */}
-        {items.length > 0 && (
-          <View style={styles.itemsSection}>
-            <Text style={styles.itemsSectionTitle}>Listed Items</Text>
-            {items.map((item) => (
-              <ListItem key={item.id} item={item} />
-            ))}
-          </View>
-        )}
-      </ScrollView>
-    </KeyboardAvoidingView>
+      )}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8f9fa',
-  },
   scrollContainer: {
     flexGrow: 1,
     padding: 20,
+    backgroundColor: '#f8f9fa',
   },
   header: {
     marginBottom: 30,
@@ -166,74 +73,15 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: '#7f8c8d',
-  },
-  form: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  inputGroup: {
     marginBottom: 20,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2c3e50',
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#e1e8ed',
+  addButton: {
+    backgroundColor: '#27ae60',
     borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: '#f8f9fa',
-    color: '#2c3e50',
-  },
-  textArea: {
-    height: 100,
-  },
-  characterCount: {
-    fontSize: 12,
-    color: '#7f8c8d',
-    textAlign: 'right',
-    marginTop: 4,
-  },
-  priceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e1e8ed',
-    borderRadius: 8,
-    backgroundColor: '#f8f9fa',
-  },
-  dollarSign: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#27ae60',
-    paddingLeft: 12,
-    paddingRight: 8,
-  },
-  priceInput: {
-    flex: 1,
-    borderWidth: 0,
-    backgroundColor: 'transparent',
-  },
-  submitButton: {
-    backgroundColor: '#3498db',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 10,
-    shadowColor: '#3498db',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    marginBottom: 12,
+    shadowColor: '#27ae60',
     shadowOffset: {
       width: 0,
       height: 2,
@@ -242,13 +90,24 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
-  submitButtonText: {
+  addButtonText: {
     color: 'white',
-    fontSize: 18,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  settingsButton: {
+    backgroundColor: '#95a5a6',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  settingsButtonText: {
+    color: 'white',
+    fontSize: 14,
     fontWeight: '600',
   },
   itemsSection: {
-    marginTop: 30,
+    marginTop: 20,
     paddingTop: 20,
     borderTopWidth: 1,
     borderTopColor: '#e1e8ed',
@@ -260,16 +119,20 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: 'center',
   },
-  settingsButton: {
-    backgroundColor: '#95a5a6',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginTop: 16,
+  emptyState: {
+    alignItems: 'center',
+    marginTop: 50,
+    paddingHorizontal: 20,
   },
-  settingsButtonText: {
-    color: 'white',
-    fontSize: 14,
+  emptyStateTitle: {
+    fontSize: 20,
     fontWeight: '600',
+    color: '#7f8c8d',
+    marginBottom: 8,
+  },
+  emptyStateSubtitle: {
+    fontSize: 16,
+    color: '#95a5a6',
+    textAlign: 'center',
   },
 });
