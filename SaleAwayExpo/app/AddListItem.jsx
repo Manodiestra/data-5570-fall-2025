@@ -20,14 +20,6 @@ export default function AddListItemScreen() {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
 
-
-  const addItems = (num1, num2) => {
-    return num1 + num2;
-  }
-
-  const num4
-
-  addItems(num4, (num4) => { return num4 + 5});
   
   const showAlert = (title, message, buttons) => {
     if (Platform.OS === 'web') {
