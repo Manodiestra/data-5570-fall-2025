@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,15 +7,77 @@ import {
   ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import ListItem from '../components/ListItem';
+import { addItems } from '../state/slices/listItemsSlice';
+
+
+function isExpired(expirationDate) {
+  if (!expirationDate) {
+    return false;
+  }
+  return new Date(expirationDate) < new Date();
+}
 
 export default function ItemListingScreen() {
+  const dispatch = useDispatch();
   const items = useSelector((state) => state.listItems.items);
-  
+
   const handleAddItem = () => {
     router.push('/AddListItem');
   };
+
+  useEffect(() => {
+    dispatch(addItems([
+      {
+        id: '1',
+        name: 'Vintage Leather Jacket',
+        expirationDate: '2025-12-31',
+        description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.',
+        price: 89.99,
+        createdAt: '2024-01-15T10:30:00.000Z',
+      },
+      {
+        id: '2',
+        expirationDate: '2025-12-31',
+        name: 'Wireless Bluetooth Headphones',
+        description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
+        price: 129.50,
+        createdAt: '2024-01-14T14:20:00.000Z',
+      },
+      {
+        id: '3',
+        expirationDate: '2025-12-31',
+        name: 'Coffee Maker Deluxe',
+        description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
+        price: 199.99,
+        createdAt: '2024-01-13T09:15:00.000Z',
+      },
+      {
+        id: '4',
+        expirationDate: '2025-10-12',
+        name: 'Smart Watch Series 8',
+        description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium.',
+        price: 299.00,
+        createdAt: '2024-01-12T16:45:00.000Z',
+      },
+      {
+        id: '5',  
+        expirationDate: null,
+        name: 'Antique Wooden Bookshelf',
+        description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt.',
+        price: 450.00,
+        createdAt: '2024-01-11T11:30:00.000Z',
+      },
+      {
+        id: '6',
+        expirationDate: null,
+        name: 'Gaming Mechanical Keyboard',
+        description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores.',
+        price: 159.99,
+        createdAt: '2024-01-10T13:20:00.000Z',
+      },]));
+  }, []);
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -40,8 +102,8 @@ export default function ItemListingScreen() {
       {items.length > 0 ? (
         <View style={styles.itemsSection}>
           <Text style={styles.itemsSectionTitle}>Your Listed Items ({items.length})</Text>
-          {items.map((item) => (
-            <ListItem key={item.id} item={item} />
+          {items.map((item) => (isExpired(item.expirationDate)) ? null : (
+              <ListItem key={item.id} item={item} />
           ))}
         </View>
       ) : (

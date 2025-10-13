@@ -11,6 +11,10 @@ const listItemsSlice = createSlice({
   name: 'listItems',
   initialState,
   reducers: {
+    addItems: (state, action) => {
+      console.log('addItems', action.payload);
+      state.items = action.payload;
+    },
     addItem: (state, action) => {
       const newItem = {
         id: action.payload.id || Date.now().toString(),
@@ -43,6 +47,6 @@ const listItemsSlice = createSlice({
   },
 });
 
-export const { addItem, removeItem, updateItem, clearItems, setLoading, setError } = listItemsSlice.actions;
+export const { addItems, addItem, removeItem, updateItem, clearItems, setLoading, setError } = listItemsSlice.actions;
 
 export default listItemsSlice.reducer;
