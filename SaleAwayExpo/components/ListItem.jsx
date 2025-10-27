@@ -10,7 +10,7 @@ const ListItem = ({ item }) => {
       </View>
       <Text style={styles.description}>{item.description}</Text>
       <Text style={styles.date}>
-        Listed: {new Date(item.createdAt).toLocaleDateString()}
+        Listed: {new Date(item.list_date).toLocaleDateString()}
       </Text>
     </View>
   );
