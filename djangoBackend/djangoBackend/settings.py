@@ -25,7 +25,18 @@ SECRET_KEY = 'django-insecure-qisgi(it$+!u%$j#sea*fdj0o^3!=t%&@icsbl8d&aj3n4=(5y
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['3.85.53.16', 'localhost', '127.0.0.1', '*']
+
+# CORS settings
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:8081',
+    'http://127.0.0.1:8081',
+    'http://localhost:19000',  # Expo web
+    'http://localhost:19006',  # Expo web
+]
+
+# Allow all origins in development (remove this in production!)
+CORS_ALLOW_ALL_ORIGINS = True
 
 
 # Application definition
@@ -38,11 +49,13 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'corsheaders',
     'SaleAway',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
