@@ -6,7 +6,7 @@ const ListItem = ({ item }) => {
     <View style={styles.card}>
       <View style={styles.header}>
         <Text style={styles.itemName}>{item.name}</Text>
-        <Text style={styles.price}>${item.price.toFixed(2)}</Text>
+        <Text style={styles.price}>${parseFloat(item.price).toFixed(2)}</Text>
       </View>
       <Text style={styles.description}>{item.description}</Text>
       <Text style={styles.date}>
