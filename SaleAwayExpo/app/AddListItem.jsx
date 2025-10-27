@@ -9,13 +9,15 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
-import { useDispatch } from 'react-redux';
-import { addItem } from '../state/slices/listItemsSlice';
+import { useDispatch, useSelector } from 'react-redux';
+import { createItem } from '../state/slices/listItemsSlice';
 
 export default function AddListItemScreen() {
   const dispatch = useDispatch();
+  const createLoading = useSelector((state) => state.listItems.createLoading);
   const [itemName, setItemName] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
@@ -31,7 +33,7 @@ export default function AddListItemScreen() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     console.log('handleSubmit');
     if (!itemName.trim() || !description.trim() || !price.trim()) {
       showAlert('Error', 'Please fill in all fields');
@@ -46,20 +48,25 @@ export default function AddListItemScreen() {
 
     // Create new item object
     const newItem = {
-      id: Date.now().toString(), // Simple ID generation
       name: itemName.trim(),
       description: description.trim(),
       price: numericPrice,
-      createdAt: new Date().toISOString(),
     };
 
-    // Add item to Redux store
-    dispatch(addItem(newItem));
-
-    // Clear form
-    setItemName('');
-    setDescription('');
-    setPrice('');
+    try {
+      // Post item to backend via thunk
+      const result = await dispatch(createItem(newItem)).unwrap();
+      
+      // Clear form
+      setItemName('');
+      setDescription('');
+      setPrice('');
+      
+      // Navigate back to previous screen
+      router.back();
+    } catch (error) {
+      showAlert('Error', `Failed to create item: ${error}`);
+    }
   };
 
   const handleGoBack = () => {
@@ -126,8 +133,16 @@ export default function AddListItemScreen() {
             </View>
           </View>
 
-          <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-            <Text style={styles.submitButtonText}>Add Item</Text>
+          <TouchableOpacity 
+            style={[styles.submitButton, createLoading && styles.submitButtonDisabled]} 
+            onPress={handleSubmit}
+            disabled={createLoading}
+          >
+            {createLoading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text style={styles.submitButtonText}>Add Item</Text>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -245,6 +260,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+  submitButtonDisabled: {
+    backgroundColor: '#95a5a6',
+    opacity: 0.6,
   },
   submitButtonText: {
     color: 'white',

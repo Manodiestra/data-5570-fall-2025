@@ -16,18 +16,14 @@ const initialState = {
 export const fetchItems = createAsyncThunk(
   'listItems/fetchItems',
   async (_, { rejectWithValue }) => {
-    console.log('fetchItems request start');
     try {
       const response = await fetch(API_BASE_URL);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      console.log('fetchItems response', response);
       const data = await response.json();
-      console.log('fetchItems response', data);
       return data;
     } catch (error) {
-      console.log('fetchItems error', error);
       return rejectWithValue(error.message);
     }
   }

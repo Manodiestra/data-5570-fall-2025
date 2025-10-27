@@ -14,81 +14,52 @@ import {
   Paragraph,
   Surface,
   Divider,
-  FAB,
-  IconButton,
   ActivityIndicator,
+  IconButton,
 } from 'react-native-paper';
-import ListItem from '../components/ListItem';
-import { fetchItems } from '../state/slices/listItemsSlice';
+import { fetchLocations } from '../state/slices/locationsSlice';
 
-
-
-export default function ItemListingScreen() {
+export default function LocationsScreen() {
   const dispatch = useDispatch();
-  const { items, loading, error } = useSelector((state) => state.listItems);
-
-  const handleAddItem = () => {
-    router.push('/AddListItem');
-  };
+  const { locations, loading, error } = useSelector((state) => state.locations);
 
   useEffect(() => {
-    dispatch(fetchItems());
+    dispatch(fetchLocations());
   }, [dispatch]);
 
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <Surface style={styles.header} elevation={2}>
-          <Title style={styles.title}>Item Listings</Title>
-          <Paragraph style={styles.subtitle}>View and manage your listed items</Paragraph>
-          
-          <View style={styles.buttonContainer}>
-            <Button 
-              mode="contained" 
-              onPress={handleAddItem}
-              style={styles.addButton}
-              buttonColor="navy"
-              icon="plus"
-            >
-              Add New Item
-            </Button>
-            
+          <View style={styles.headerTop}>
             <IconButton 
-              icon="cog" 
+              icon="arrow-left" 
               size={24} 
-              onPress={() => router.push('/Settings')}
-              style={styles.settingsButton}
+              onPress={() => router.back()}
+              style={styles.backButton}
             />
+            <Title style={styles.title}>Locations</Title>
+            <View style={styles.placeholder} />
           </View>
-          
-          <View style={styles.secondaryButtonContainer}>
-            <Button 
-              mode="outlined" 
-              onPress={() => router.push('/Locations')}
-              style={styles.locationsButton}
-              icon="map-marker"
-            >
-              View Locations
-            </Button>
-          </View>
+          <Paragraph style={styles.subtitle}>View and manage your locations</Paragraph>
         </Surface>
 
-        {/* Items List Section */}
+        {/* Locations List Section */}
         {loading ? (
           <Card style={styles.loadingState}>
             <Card.Content style={styles.loadingStateContent}>
               <ActivityIndicator size="large" color="#0F2439" />
-              <Title style={styles.loadingStateTitle}>Loading items...</Title>
+              <Title style={styles.loadingStateTitle}>Loading locations...</Title>
             </Card.Content>
           </Card>
         ) : error ? (
           <Card style={styles.errorState}>
             <Card.Content style={styles.errorStateContent}>
-              <Title style={styles.errorStateTitle}>Error loading items</Title>
+              <Title style={styles.errorStateTitle}>Error loading locations</Title>
               <Paragraph style={styles.errorStateSubtitle}>{error}</Paragraph>
               <Button 
                 mode="contained" 
-                onPress={() => dispatch(fetchItems())}
+                onPress={() => dispatch(fetchLocations())}
                 style={styles.retryButton}
                 buttonColor="#0F2439"
               >
@@ -96,37 +67,38 @@ export default function ItemListingScreen() {
               </Button>
             </Card.Content>
           </Card>
-        ) : items.length > 0 ? (
-          <Card style={styles.itemsSection}>
-            <Card.Content>
-              <Title style={styles.itemsSectionTitle}>
-                Your Listed Items ({items.length})
-              </Title>
-              <Divider style={styles.divider} />
-              {items.map((item) => (
-                  <ListItem key={item.id} item={item} />
-              ))}
-            </Card.Content>
-          </Card>
+        ) : locations.length > 0 ? (
+          <View style={styles.locationsContainer}>
+            {locations.map((location) => (
+              <Card key={location.id} style={styles.locationCard}>
+                <Card.Content>
+                  <Title style={styles.locationName}>{location.name}</Title>
+                  <Paragraph style={styles.locationAddress}>
+                    {location.address}
+                  </Paragraph>
+                  <Paragraph style={styles.locationCity}>
+                    {location.city}, {location.state} {location.zip}
+                  </Paragraph>
+                  {location.created_date && (
+                    <Paragraph style={styles.locationDate}>
+                      Created: {new Date(location.created_date).toLocaleDateString()}
+                    </Paragraph>
+                  )}
+                </Card.Content>
+              </Card>
+            ))}
+          </View>
         ) : (
           <Card style={styles.emptyState}>
             <Card.Content style={styles.emptyStateContent}>
-              <Title style={styles.emptyStateTitle}>No items listed yet</Title>
+              <Title style={styles.emptyStateTitle}>No locations yet</Title>
               <Paragraph style={styles.emptyStateSubtitle}>
-                Tap "Add New Item" to get started
+                Locations will appear here when created
               </Paragraph>
             </Card.Content>
           </Card>
         )}
       </ScrollView>
-      
-      <FAB
-        style={styles.fab}
-        icon="plus"
-        onPress={handleAddItem}
-        label="Add Item"
-        color="#0F2439"
-      />
     </View>
   );
 }
@@ -146,47 +118,54 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: 'white',
   },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  backButton: {
+    margin: 0,
+  },
+  placeholder: {
+    width: 40,
+  },
   title: {
     textAlign: 'center',
-    marginBottom: 8,
     fontSize: 28,
     fontWeight: 'bold',
   },
   subtitle: {
     textAlign: 'center',
-    marginBottom: 20,
     fontSize: 16,
     opacity: 0.7,
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  locationsContainer: {
+    gap: 16,
   },
-  addButton: {
-    flex: 1,
-    marginRight: 8,
+  locationCard: {
+    marginBottom: 0,
   },
-  settingsButton: {
-    margin: 0,
-  },
-  secondaryButtonContainer: {
-    marginTop: 12,
-  },
-  locationsButton: {
-    width: '100%',
-  },
-  itemsSection: {
-    marginBottom: 16,
-  },
-  itemsSectionTitle: {
-    textAlign: 'center',
-    marginBottom: 16,
+  locationName: {
     fontSize: 20,
     fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#0F2439',
   },
-  divider: {
-    marginBottom: 16,
+  locationAddress: {
+    fontSize: 16,
+    color: '#2c3e50',
+    marginBottom: 4,
+  },
+  locationCity: {
+    fontSize: 15,
+    color: '#7f8c8d',
+    marginBottom: 8,
+  },
+  locationDate: {
+    fontSize: 12,
+    color: '#95a5a6',
+    fontStyle: 'italic',
   },
   emptyState: {
     marginTop: 50,
@@ -244,10 +223,5 @@ const styles = StyleSheet.create({
   retryButton: {
     marginTop: 8,
   },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 0,
-  },
 });
+
