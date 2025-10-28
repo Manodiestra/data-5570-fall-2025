@@ -25,39 +25,12 @@ SECRET_KEY = 'django-insecure-qisgi(it$+!u%$j#sea*fdj0o^3!=t%&@icsbl8d&aj3n4=(5y
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['3.85.53.16', 'localhost', '127.0.0.1', '*']
+ALLOWED_HOSTS = ['*']
 
 # CORS settings
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:8081',
     'http://127.0.0.1:8081',
-    'http://localhost:19000',  # Expo web
-    'http://localhost:19006',  # Expo web
-]
-
-# Allow all origins in development (remove this in production!)
-CORS_ALLOW_ALL_ORIGINS = True
-
-# Allow specific methods and headers
-CORS_ALLOW_METHODS = [
-    'DELETE',
-    'GET',
-    'OPTIONS',
-    'PATCH',
-    'POST',
-    'PUT',
-]
-
-CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
 ]
 
 
