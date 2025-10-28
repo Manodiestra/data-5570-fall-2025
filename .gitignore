@@ -1,2 +1,6 @@
 # venv
 myvenv/
+
+# django
+djangoBackend/db.sqlite3
+**/__pycache__/
