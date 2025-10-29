@@ -1,9 +1,38 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 
 // API base URL
-const API_BASE_URL = 'http://3.85.53.16:8000/api/listings/';
+const API_BASE_URL = 'https://arnold-calling-vol-headers.trycloudflare.com/api/listings/';
 
-const initialState = {
+// Type definitions
+export interface ListItem {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  list_date: string;
+  last_edited_date: string;
+}
+
+export interface ListItemsState {
+  items: ListItem[];
+  loading: boolean;
+  error: string | null;
+  createLoading: boolean;
+  updateLoading: boolean;
+  deleteLoading: boolean;
+}
+
+export interface CreateItemPayload {
+  name: string;
+  description: string;
+  price: number;
+}
+
+export interface UpdateItemPayload extends Partial<CreateItemPayload> {
+  id: string;
+}
+
+const initialState: ListItemsState = {
   items: [],
   loading: false,
   error: null,
@@ -13,7 +42,11 @@ const initialState = {
 };
 
 // Async thunks for REST operations
-export const fetchItems = createAsyncThunk(
+export const fetchItems = createAsyncThunk<
+  ListItem[],
+  void,
+  { rejectValue: string }
+>(
   'listItems/fetchItems',
   async (_, { rejectWithValue }) => {
     try {
@@ -24,12 +57,16 @@ export const fetchItems = createAsyncThunk(
       const data = await response.json();
       return data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch items');
     }
   }
 );
 
-export const createItem = createAsyncThunk(
+export const createItem = createAsyncThunk<
+  ListItem,
+  CreateItemPayload,
+  { rejectValue: string }
+>(
   'listItems/createItem',
   async (itemData, { rejectWithValue }) => {
     try {
@@ -53,12 +90,16 @@ export const createItem = createAsyncThunk(
       const data = await response.json();
       return data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to create item');
     }
   }
 );
 
-export const updateItemAsync = createAsyncThunk(
+export const updateItemAsync = createAsyncThunk<
+  ListItem,
+  UpdateItemPayload,
+  { rejectValue: string }
+>(
   'listItems/updateItemAsync',
   async ({ id, ...itemData }, { rejectWithValue }) => {
     try {
@@ -82,12 +123,16 @@ export const updateItemAsync = createAsyncThunk(
       const data = await response.json();
       return data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to update item');
     }
   }
 );
 
-export const deleteItem = createAsyncThunk(
+export const deleteItem = createAsyncThunk<
+  string,
+  string,
+  { rejectValue: string }
+>(
   'listItems/deleteItem',
   async (id, { rejectWithValue }) => {
     try {
@@ -99,7 +144,7 @@ export const deleteItem = createAsyncThunk(
       }
       return id;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to delete item');
     }
   }
 );
@@ -108,25 +153,25 @@ const listItemsSlice = createSlice({
   name: 'listItems',
   initialState,
   reducers: {
-    addItems: (state, action) => {
+    addItems: (state, action: PayloadAction<ListItem[]>) => {
       console.log('addItems', action.payload);
       state.items = action.payload;
     },
-    addItem: (state, action) => {
-      const newItem = {
+    addItem: (state, action: PayloadAction<Partial<ListItem>>) => {
+      const newItem: ListItem = {
         id: action.payload.id || Date.now().toString(),
-        name: action.payload.name,
-        description: action.payload.description,
-        price: action.payload.price,
+        name: action.payload.name || '',
+        description: action.payload.description || '',
+        price: action.payload.price || 0,
         list_date: action.payload.list_date || new Date().toISOString(),
         last_edited_date: action.payload.last_edited_date || new Date().toISOString(),
       };
       state.items.push(newItem);
     },
-    removeItem: (state, action) => {
+    removeItem: (state, action: PayloadAction<string>) => {
       state.items = state.items.filter(item => item.id !== action.payload);
     },
-    updateItem: (state, action) => {
+    updateItem: (state, action: PayloadAction<UpdateItemPayload>) => {
       const { id, ...updates } = action.payload;
       const itemIndex = state.items.findIndex(item => item.id === id);
       if (itemIndex !== -1) {
@@ -136,10 +181,10 @@ const listItemsSlice = createSlice({
     clearItems: (state) => {
       state.items = [];
     },
-    setLoading: (state, action) => {
+    setLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload;
     },
-    setError: (state, action) => {
+    setError: (state, action: PayloadAction<string | null>) => {
       state.error = action.payload;
     },
   },
@@ -157,7 +202,7 @@ const listItemsSlice = createSlice({
       })
       .addCase(fetchItems.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
+        state.error = action.payload || 'Failed to fetch items';
       });
 
     // Create item
@@ -173,7 +218,7 @@ const listItemsSlice = createSlice({
       })
       .addCase(createItem.rejected, (state, action) => {
         state.createLoading = false;
-        state.error = action.payload;
+        state.error = action.payload || 'Failed to create item';
       });
 
     // Update item
@@ -192,7 +237,7 @@ const listItemsSlice = createSlice({
       })
       .addCase(updateItemAsync.rejected, (state, action) => {
         state.updateLoading = false;
-        state.error = action.payload;
+        state.error = action.payload || 'Failed to update item';
       });
 
     // Delete item
@@ -208,7 +253,7 @@ const listItemsSlice = createSlice({
       })
       .addCase(deleteItem.rejected, (state, action) => {
         state.deleteLoading = false;
-        state.error = action.payload;
+        state.error = action.payload || 'Failed to delete item';
       });
   },
 });
@@ -216,3 +261,4 @@ const listItemsSlice = createSlice({
 export const { addItems, addItem, removeItem, updateItem: updateItemLocal, clearItems, setLoading, setError } = listItemsSlice.actions;
 
 export default listItemsSlice.reducer;
+

@@ -1,9 +1,42 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 
 // API base URL
 const API_BASE_URL = 'http://3.85.53.16:8000/api/locations/';
 
-const initialState = {
+// Type definitions
+export interface Location {
+  id: string;
+  name: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  created_date: string;
+  updated_date: string;
+}
+
+export interface LocationsState {
+  locations: Location[];
+  loading: boolean;
+  error: string | null;
+  createLoading: boolean;
+  updateLoading: boolean;
+  deleteLoading: boolean;
+}
+
+export interface CreateLocationPayload {
+  name: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+}
+
+export interface UpdateLocationPayload extends Partial<CreateLocationPayload> {
+  id: string;
+}
+
+const initialState: LocationsState = {
   locations: [],
   loading: false,
   error: null,
@@ -13,7 +46,11 @@ const initialState = {
 };
 
 // Async thunks for REST operations
-export const fetchLocations = createAsyncThunk(
+export const fetchLocations = createAsyncThunk<
+  Location[],
+  void,
+  { rejectValue: string }
+>(
   'locations/fetchLocations',
   async (_, { rejectWithValue }) => {
     try {
@@ -24,12 +61,16 @@ export const fetchLocations = createAsyncThunk(
       const data = await response.json();
       return data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch locations');
     }
   }
 );
 
-export const createLocation = createAsyncThunk(
+export const createLocation = createAsyncThunk<
+  Location,
+  CreateLocationPayload,
+  { rejectValue: string }
+>(
   'locations/createLocation',
   async (locationData, { rejectWithValue }) => {
     try {
@@ -55,12 +96,16 @@ export const createLocation = createAsyncThunk(
       const data = await response.json();
       return data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to create location');
     }
   }
 );
 
-export const updateLocationAsync = createAsyncThunk(
+export const updateLocationAsync = createAsyncThunk<
+  Location,
+  UpdateLocationPayload,
+  { rejectValue: string }
+>(
   'locations/updateLocationAsync',
   async ({ id, ...locationData }, { rejectWithValue }) => {
     try {
@@ -86,12 +131,16 @@ export const updateLocationAsync = createAsyncThunk(
       const data = await response.json();
       return data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to update location');
     }
   }
 );
 
-export const deleteLocation = createAsyncThunk(
+export const deleteLocation = createAsyncThunk<
+  string,
+  string,
+  { rejectValue: string }
+>(
   'locations/deleteLocation',
   async (id, { rejectWithValue }) => {
     try {
@@ -103,7 +152,7 @@ export const deleteLocation = createAsyncThunk(
       }
       return id;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to delete location');
     }
   }
 );
@@ -112,26 +161,26 @@ const locationsSlice = createSlice({
   name: 'locations',
   initialState,
   reducers: {
-    addLocations: (state, action) => {
+    addLocations: (state, action: PayloadAction<Location[]>) => {
       state.locations = action.payload;
     },
-    addLocation: (state, action) => {
-      const newLocation = {
+    addLocation: (state, action: PayloadAction<Partial<Location>>) => {
+      const newLocation: Location = {
         id: action.payload.id || Date.now().toString(),
-        name: action.payload.name,
-        address: action.payload.address,
-        city: action.payload.city,
-        state: action.payload.state,
-        zip: action.payload.zip,
+        name: action.payload.name || '',
+        address: action.payload.address || '',
+        city: action.payload.city || '',
+        state: action.payload.state || '',
+        zip: action.payload.zip || '',
         created_date: action.payload.created_date || new Date().toISOString(),
         updated_date: action.payload.updated_date || new Date().toISOString(),
       };
       state.locations.push(newLocation);
     },
-    removeLocation: (state, action) => {
+    removeLocation: (state, action: PayloadAction<string>) => {
       state.locations = state.locations.filter(location => location.id !== action.payload);
     },
-    updateLocation: (state, action) => {
+    updateLocation: (state, action: PayloadAction<UpdateLocationPayload>) => {
       const { id, ...updates } = action.payload;
       const locationIndex = state.locations.findIndex(location => location.id === id);
       if (locationIndex !== -1) {
@@ -156,7 +205,7 @@ const locationsSlice = createSlice({
       })
       .addCase(fetchLocations.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
+        state.error = action.payload || 'Failed to fetch locations';
       });
 
     // Create location
@@ -172,7 +221,7 @@ const locationsSlice = createSlice({
       })
       .addCase(createLocation.rejected, (state, action) => {
         state.createLoading = false;
-        state.error = action.payload;
+        state.error = action.payload || 'Failed to create location';
       });
 
     // Update location
@@ -191,7 +240,7 @@ const locationsSlice = createSlice({
       })
       .addCase(updateLocationAsync.rejected, (state, action) => {
         state.updateLoading = false;
-        state.error = action.payload;
+        state.error = action.payload || 'Failed to update location';
       });
 
     // Delete location
@@ -207,7 +256,7 @@ const locationsSlice = createSlice({
       })
       .addCase(deleteLocation.rejected, (state, action) => {
         state.deleteLoading = false;
-        state.error = action.payload;
+        state.error = action.payload || 'Failed to delete location';
       });
   },
 });
