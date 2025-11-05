@@ -17,7 +17,7 @@ This guide will help you integrate AWS Cognito authentication into your SaleAway
 Navigate to your Django backend directory and install the required packages:
 
 ```bash
-cd djangoBackend
+cd djangoBackendcloudflared tunnel --url http://localhost:8000
 source ../myvenv/bin/activate  # or activate your virtual environment
 pip install python-jose[cryptography] requests python-dotenv
 ```
