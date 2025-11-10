@@ -1,7 +1,21 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { RootState } from '../store';
 
 // API base URL
-const API_BASE_URL = 'https://arnold-calling-vol-headers.trycloudflare.com/api/listings/';
+const API_BASE_URL = 'http://localhost:8000/api/listings/';
+
+// Helper function to get auth headers
+const getAuthHeaders = (token: string | null) => {
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  return headers;
+};
 
 // Type definitions
 export interface ListItem {
@@ -65,11 +79,15 @@ export const fetchItems = createAsyncThunk<
 export const createItem = createAsyncThunk<
   ListItem,
   CreateItemPayload,
-  { rejectValue: string }
+  { rejectValue: string; state: RootState }
 >(
   'listItems/createItem',
-  async (itemData, { rejectWithValue }) => {
+  async (itemData, { rejectWithValue, getState }) => {
     try {
+      // Get the ID token from user state
+      const state = getState();
+      const idToken = state.user.tokens?.idToken || null;
+      console.log('TOKEN', idToken);
       // Only send writable fields to Django API
       const payload = {
         name: itemData.name,
@@ -79,9 +97,7 @@ export const createItem = createAsyncThunk<
       
       const response = await fetch(API_BASE_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(idToken),
         body: JSON.stringify(payload),
       });
       if (!response.ok) {
@@ -98,11 +114,15 @@ export const createItem = createAsyncThunk<
 export const updateItemAsync = createAsyncThunk<
   ListItem,
   UpdateItemPayload,
-  { rejectValue: string }
+  { rejectValue: string; state: RootState }
 >(
   'listItems/updateItemAsync',
-  async ({ id, ...itemData }, { rejectWithValue }) => {
+  async ({ id, ...itemData }, { rejectWithValue, getState }) => {
     try {
+      // Get the ID token from user state
+      const state = getState();
+      const idToken = state.user.tokens?.idToken || null;
+      
       // Only send writable fields to Django API
       const payload = {
         name: itemData.name,
@@ -110,11 +130,9 @@ export const updateItemAsync = createAsyncThunk<
         price: itemData.price,
       };
       
-      const response = await fetch(`${API_BASE_URL}/${id}/`, {
+      const response = await fetch(`${API_BASE_URL}${id}/`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(idToken),
         body: JSON.stringify(payload),
       });
       if (!response.ok) {
@@ -131,13 +149,18 @@ export const updateItemAsync = createAsyncThunk<
 export const deleteItem = createAsyncThunk<
   string,
   string,
-  { rejectValue: string }
+  { rejectValue: string; state: RootState }
 >(
   'listItems/deleteItem',
-  async (id, { rejectWithValue }) => {
+  async (id, { rejectWithValue, getState }) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/${id}/`, {
+      // Get the ID token from user state
+      const state = getState();
+      const idToken = state.user.tokens?.idToken || null;
+      
+      const response = await fetch(`${API_BASE_URL}${id}/`, {
         method: 'DELETE',
+        headers: getAuthHeaders(idToken),
       });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
