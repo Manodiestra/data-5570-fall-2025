@@ -128,7 +128,7 @@ export default function SignUpScreen() {
   };
 
   const handleSignIn = () => {
-    router.push('/Dashboard');
+    router.push('/signin');
   };
 
   if (showConfirmation) {
