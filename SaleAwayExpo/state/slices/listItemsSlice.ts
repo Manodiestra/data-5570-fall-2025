@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '../store';
 
 // API base URL
-const API_BASE_URL = 'http://localhost:8000/api/listings/';
+const API_BASE_URL = 'http://3.85.53.16:8000/api/listings/';
 
 // Helper function to get auth headers
 const getAuthHeaders = (token: string | null) => {

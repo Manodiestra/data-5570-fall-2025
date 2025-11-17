@@ -255,13 +255,92 @@ export const signOut = createAsyncThunk<void, void, { rejectValue: string }>(
   }
 );
 
+export const refreshToken = createAsyncThunk<
+  { user: any; tokens: any },
+  void,
+  { rejectValue: string }
+>(
+  'user/refreshToken',
+  async (_, { rejectWithValue }) => {
+    try {
+      const refreshTokenValue = await storage.getItem(REFRESH_TOKEN_KEY);
+      
+      if (!refreshTokenValue) {
+        throw new Error('No refresh token available');
+      }
+      
+      const requestBody = {
+        AuthFlow: 'REFRESH_TOKEN_AUTH',
+        ClientId: COGNITO_CLIENT_ID,
+        AuthParameters: {
+          REFRESH_TOKEN: refreshTokenValue,
+        },
+      };
+      
+      const response = await fetch(
+        `https://cognito-idp.${COGNITO_REGION}.amazonaws.com/`,
+        {
+          method: 'POST',
+          headers: {
+            'X-Amz-Target': 'AWSCognitoIdentityProviderService.InitiateAuth',
+            'Content-Type': 'application/x-amz-json-1.1',
+          },
+          body: JSON.stringify(requestBody),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.__type || errorData.message || 'Token refresh failed');
+      }
+
+      const data = await response.json();
+      
+      // Extract tokens from response
+      const accessToken = data.AuthenticationResult.AccessToken;
+      const idToken = data.AuthenticationResult.IdToken;
+      // Note: Refresh token is not returned in refresh response, keep the existing one
+      
+      // Decode ID token to get user info
+      const idTokenParts = idToken.split('.');
+      const idTokenPayload = JSON.parse(
+        atob(idTokenParts[1].replace(/-/g, '+').replace(/_/g, '/'))
+      );
+      
+      // Store new tokens securely
+      await storage.setItem(ACCESS_TOKEN_KEY, accessToken);
+      await storage.setItem(ID_TOKEN_KEY, idToken);
+      // Keep the existing refresh token
+      
+      return {
+        user: {
+          username: idTokenPayload['cognito:username'] || idTokenPayload.sub,
+          email: idTokenPayload.email,
+          sub: idTokenPayload.sub,
+        },
+        tokens: {
+          accessToken: accessToken,
+          idToken: idToken,
+          refreshToken: refreshTokenValue, // Keep existing refresh token
+        },
+      };
+    } catch (error) {
+      // If refresh fails, clear all tokens
+      await storage.deleteItem(ACCESS_TOKEN_KEY);
+      await storage.deleteItem(ID_TOKEN_KEY);
+      await storage.deleteItem(REFRESH_TOKEN_KEY);
+      return rejectWithValue(error instanceof Error ? error.message : 'Token refresh failed');
+    }
+  }
+);
+
 export const checkAuthStatus = createAsyncThunk<
   { user: any; tokens: any } | null,
   void,
   { rejectValue: string }
 >(
   'user/checkAuthStatus',
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, dispatch }) => {
     try {
       const idToken = await storage.getItem(ID_TOKEN_KEY);
       
@@ -275,18 +354,25 @@ export const checkAuthStatus = createAsyncThunk<
         atob(idTokenParts[1].replace(/-/g, '+').replace(/_/g, '/'))
       );
       
-      // Check if token is expired
+      // Check if token is expired or will expire soon (within 30 seconds)
       const currentTime = Math.floor(Date.now() / 1000);
-      if (idTokenPayload.exp && idTokenPayload.exp < currentTime) {
-        // Token expired, try to refresh
-        const refreshToken = await storage.getItem(REFRESH_TOKEN_KEY);
-        if (refreshToken) {
-          // TODO: Implement token refresh logic
-          await storage.deleteItem(ACCESS_TOKEN_KEY);
-          await storage.deleteItem(ID_TOKEN_KEY);
-          await storage.deleteItem(REFRESH_TOKEN_KEY);
-          return null;
+      const expiresAt = idTokenPayload.exp || 0;
+      const timeUntilExpiry = expiresAt - currentTime;
+      
+      if (timeUntilExpiry < 30) {
+        // Token expired or expiring soon, try to refresh
+        const refreshTokenValue = await storage.getItem(REFRESH_TOKEN_KEY);
+        if (refreshTokenValue) {
+          // Attempt to refresh the token
+          const refreshResult = await dispatch(refreshToken());
+          if (refreshToken.fulfilled.match(refreshResult)) {
+            return refreshResult.payload;
+          } else {
+            // Refresh failed, return null to indicate user needs to sign in again
+            return null;
+          }
         } else {
+          // No refresh token available, clear tokens
           await storage.deleteItem(ACCESS_TOKEN_KEY);
           await storage.deleteItem(ID_TOKEN_KEY);
           return null;
@@ -401,6 +487,27 @@ const userSlice = createSlice({
       .addCase(signOut.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload || 'Sign out failed';
+      });
+    
+    // Refresh token
+    builder
+      .addCase(refreshToken.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(refreshToken.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isAuthenticated = true;
+        state.user = action.payload.user;
+        state.tokens = action.payload.tokens;
+        state.error = null;
+      })
+      .addCase(refreshToken.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isAuthenticated = false;
+        state.user = null;
+        state.tokens = null;
+        state.error = action.payload || 'Token refresh failed';
       });
     
     // Check auth status
