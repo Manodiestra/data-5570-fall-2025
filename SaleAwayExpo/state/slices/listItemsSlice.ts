@@ -23,6 +23,7 @@ export interface ListItem {
   name: string;
   description: string;
   price: number;
+  image_url: string | null;
   list_date: string;
   last_edited_date: string;
 }
@@ -40,6 +41,7 @@ export interface CreateItemPayload {
   name: string;
   description: string;
   price: number;
+  image_url?: string | null;
 }
 
 export interface UpdateItemPayload extends Partial<CreateItemPayload> {
@@ -93,6 +95,7 @@ export const createItem = createAsyncThunk<
         name: itemData.name,
         description: itemData.description,
         price: itemData.price,
+        ...(itemData.image_url && { image_url: itemData.image_url }),
       };
       
       const response = await fetch(API_BASE_URL, {
@@ -128,6 +131,7 @@ export const updateItemAsync = createAsyncThunk<
         name: itemData.name,
         description: itemData.description,
         price: itemData.price,
+        ...(itemData.image_url !== undefined && { image_url: itemData.image_url }),
       };
       
       const response = await fetch(`${API_BASE_URL}${id}/`, {

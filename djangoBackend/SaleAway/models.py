@@ -7,6 +7,7 @@ class Listing(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
+    image_url = models.URLField(max_length=500, blank=True, null=True, help_text="S3 bucket URL for the listing image")
     list_date = models.DateTimeField(default=timezone.now)
     last_edited_date = models.DateTimeField(auto_now=True)
     

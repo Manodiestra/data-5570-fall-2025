@@ -1,17 +1,28 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 
 const ListItem = ({ item }) => {
   return (
     <View style={styles.card}>
-      <View style={styles.header}>
-        <Text style={styles.itemName}>{item.name}</Text>
-        <Text style={styles.price}>${parseFloat(item.price).toFixed(2)}</Text>
+      {item.image_url && (
+        <Image
+          source={{ uri: item.image_url }}
+          style={styles.image}
+          contentFit="cover"
+          transition={200}
+        />
+      )}
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <Text style={styles.itemName}>{item.name}</Text>
+          <Text style={styles.price}>${parseFloat(item.price).toFixed(2)}</Text>
+        </View>
+        <Text style={styles.description}>{item.description}</Text>
+        <Text style={styles.date}>
+          Listed: {new Date(item.list_date).toLocaleDateString()}
+        </Text>
       </View>
-      <Text style={styles.description}>{item.description}</Text>
-      <Text style={styles.date}>
-        Listed: {new Date(item.list_date).toLocaleDateString()}
-      </Text>
     </View>
   );
 };
@@ -20,7 +31,6 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 16,
     marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: {
@@ -32,6 +42,15 @@ const styles = StyleSheet.create({
     elevation: 5,
     borderLeftWidth: 4,
     borderLeftColor: '#3498db',
+    overflow: 'hidden',
+  },
+  image: {
+    width: '100%',
+    height: 200,
+    backgroundColor: '#e1e8ed',
+  },
+  content: {
+    padding: 16,
   },
   header: {
     flexDirection: 'row',
