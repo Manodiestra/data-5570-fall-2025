@@ -31,9 +31,7 @@ class CognitoJWTAuthentication(BaseAuthentication):
     def authenticate(self, request):
         # Get Cognito configuration from environment variables
         COGNITO_REGION, USER_POOL_ID, APP_CLIENT_ID = get_cognito_config()
-        
-        print('ENV VARS', COGNITO_REGION, USER_POOL_ID, APP_CLIENT_ID)
-        
+                
         # Validate that environment variables are set
         if not COGNITO_REGION or not USER_POOL_ID or not APP_CLIENT_ID:
             raise AuthenticationFailed('Cognito configuration is missing. Please set COGNITO_REGION, COGNITO_USER_POOL_ID, and COGNITO_APP_CLIENT_ID environment variables.')
@@ -62,7 +60,13 @@ class CognitoJWTAuthentication(BaseAuthentication):
             audience_to_validate = token_audience if token_audience else APP_CLIENT_ID
             
             jwks_url = f'https://cognito-idp.{COGNITO_REGION}.amazonaws.com/{USER_POOL_ID}/.well-known/jwks.json'
-            jwks = requests.get(jwks_url).json()
+            jwks_response = requests.get(jwks_url)
+            jwks_response.raise_for_status()  # Raise an exception for bad status codes
+            jwks = jwks_response.json()
+            
+            if 'keys' not in jwks:
+                raise AuthenticationFailed(f'Invalid JWKS response: {jwks}')
+            
             headers = jwt.get_unverified_header(token)
             key = next((k for k in jwks['keys'] if k['kid'] == headers['kid']), None)
             if not key:
@@ -80,6 +84,8 @@ class CognitoJWTAuthentication(BaseAuthentication):
 
         except ExpiredSignatureError:
             raise AuthenticationFailed('Token has expired')
+        except requests.RequestException as e:
+            raise AuthenticationFailed(f'Failed to fetch JWKS: {str(e)}')
         except JWTError as e:
             raise AuthenticationFailed(f'JWT error: {str(e)}')
 
