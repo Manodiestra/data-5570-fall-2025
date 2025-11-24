@@ -14,7 +14,7 @@ import {
 import { router } from 'expo-router';
 import { useDispatch, useSelector } from 'react-redux';
 import { Image } from 'expo-image';
-import { createItem } from '../state/slices/listItemsSlice';
+import { createItem, generateListingData } from '../state/slices/listItemsSlice';
 import { pickImageFromLibrary, takePhoto, uploadImageToS3 } from '../utils/imageUpload';
 
 const API_BASE_URL = 'http://3.85.53.16:8000';
@@ -22,6 +22,7 @@ const API_BASE_URL = 'http://3.85.53.16:8000';
 export default function AddListItemScreen() {
   const dispatch = useDispatch();
   const createLoading = useSelector((state) => state.listItems.createLoading);
+  const generateLoading = useSelector((state) => state.listItems.generateLoading);
   const { tokens } = useSelector((state) => state.user);
   const [itemName, setItemName] = useState('');
   const [description, setDescription] = useState('');
@@ -157,6 +158,31 @@ export default function AddListItemScreen() {
     setImageUrl(null);
   };
 
+  const handleGenerateListing = async () => {
+    if (!itemName.trim()) {
+      showAlert('Error', 'Please enter a title first');
+      return;
+    }
+
+    try {
+      const result = await dispatch(generateListingData({ title: itemName.trim() })).unwrap();
+      
+      // Populate form fields with generated data
+      setItemName(result.name);
+      setDescription(result.description);
+      setPrice(result.price.toString());
+      
+      // If image was generated, set the image URL
+      if (result.image_url) {
+        setImageUrl(result.image_url);
+        // Create a preview object for the image display
+        setSelectedImage({ uri: result.image_url });
+      }
+    } catch (error) {
+      showAlert('Error', `Failed to generate listing data: ${error}`);
+    }
+  };
+
   return (
     <KeyboardAvoidingView 
       style={styles.container} 
@@ -176,7 +202,20 @@ export default function AddListItemScreen() {
 
         <View style={styles.form}>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Item Name *</Text>
+            <View style={styles.titleRow}>
+              <Text style={styles.label}>Item Name *</Text>
+              <TouchableOpacity
+                style={[styles.generateButton, (!itemName.trim() || generateLoading) && styles.generateButtonDisabled]}
+                onPress={handleGenerateListing}
+                disabled={!itemName.trim() || generateLoading}
+              >
+                {generateLoading ? (
+                  <ActivityIndicator color="white" size="small" />
+                ) : (
+                  <Text style={styles.generateButtonText}>✨ Auto-Generate</Text>
+                )}
+              </TouchableOpacity>
+            </View>
             <TextInput
               style={styles.input}
               placeholder="Enter item name"
@@ -462,5 +501,34 @@ const styles = StyleSheet.create({
     color: 'white',
     marginTop: 8,
     fontSize: 14,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  generateButton: {
+    backgroundColor: '#9b59b6',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    shadowColor: '#9b59b6',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  generateButtonDisabled: {
+    backgroundColor: '#95a5a6',
+    opacity: 0.6,
+  },
+  generateButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

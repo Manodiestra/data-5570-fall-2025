@@ -3,6 +3,7 @@ import { RootState } from '../store';
 
 // API base URL
 const API_BASE_URL = 'http://3.85.53.16:8000/api/listings/';
+const API_BASE = 'http://3.85.53.16:8000/api';
 
 // Helper function to get auth headers
 const getAuthHeaders = (token: string | null) => {
@@ -35,6 +36,7 @@ export interface ListItemsState {
   createLoading: boolean;
   updateLoading: boolean;
   deleteLoading: boolean;
+  generateLoading: boolean;
 }
 
 export interface CreateItemPayload {
@@ -48,6 +50,17 @@ export interface UpdateItemPayload extends Partial<CreateItemPayload> {
   id: string;
 }
 
+export interface GenerateListingDataPayload {
+  title: string;
+}
+
+export interface GenerateListingDataResponse {
+  name: string;
+  description: string;
+  price: number;
+  image_url?: string | null;
+}
+
 const initialState: ListItemsState = {
   items: [],
   loading: false,
@@ -55,6 +68,7 @@ const initialState: ListItemsState = {
   createLoading: false,
   updateLoading: false,
   deleteLoading: false,
+  generateLoading: false,
 };
 
 // Async thunks for REST operations
@@ -176,6 +190,37 @@ export const deleteItem = createAsyncThunk<
   }
 );
 
+export const generateListingData = createAsyncThunk<
+  GenerateListingDataResponse,
+  GenerateListingDataPayload,
+  { rejectValue: string; state: RootState }
+>(
+  'listItems/generateListingData',
+  async ({ title }, { rejectWithValue, getState }) => {
+    try {
+      // Get the ID token from user state
+      const state = getState();
+      const idToken = state.user.tokens?.idToken || null;
+      
+      const response = await fetch(`${API_BASE}/generate-listing-data/`, {
+        method: 'POST',
+        headers: getAuthHeaders(idToken),
+        body: JSON.stringify({ title }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to generate listing data');
+    }
+  }
+);
+
 const listItemsSlice = createSlice({
   name: 'listItems',
   initialState,
@@ -281,6 +326,21 @@ const listItemsSlice = createSlice({
       .addCase(deleteItem.rejected, (state, action) => {
         state.deleteLoading = false;
         state.error = action.payload || 'Failed to delete item';
+      });
+
+    // Generate listing data
+    builder
+      .addCase(generateListingData.pending, (state) => {
+        state.generateLoading = true;
+        state.error = null;
+      })
+      .addCase(generateListingData.fulfilled, (state) => {
+        state.generateLoading = false;
+        state.error = null;
+      })
+      .addCase(generateListingData.rejected, (state, action) => {
+        state.generateLoading = false;
+        state.error = action.payload || 'Failed to generate listing data';
       });
   },
 });

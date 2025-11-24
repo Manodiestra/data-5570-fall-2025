@@ -69,3 +69,42 @@ def generate_presigned_url(file_name: str, content_type: str, expiration: int = 
         'url': object_url,  # Public URL after upload
     }
 
+def upload_image_to_s3(image_data: bytes, file_extension: str = 'png', content_type: str = 'image/png') -> dict:
+    """
+    Upload image data directly to S3
+    
+    Args:
+        image_data: Binary image data (bytes)
+        file_extension: File extension (default: 'png')
+        content_type: MIME type of the image (default: 'image/png')
+    
+    Returns:
+        dict with 'url' (public URL) and 'key' (S3 object key)
+    """
+    s3_client = get_s3_client()
+    bucket_name = os.getenv('AWS_S3_BUCKET_NAME')
+    
+    if not bucket_name:
+        raise ValueError('AWS_S3_BUCKET_NAME environment variable is not set')
+    
+    # Generate unique key for the file
+    unique_id = str(uuid.uuid4())
+    timestamp = datetime.utcnow().strftime('%Y%m%d')
+    s3_key = f"listings/{timestamp}/{unique_id}.{file_extension}"
+    
+    # Upload the image to S3
+    s3_client.put_object(
+        Bucket=bucket_name,
+        Key=s3_key,
+        Body=image_data,
+        ContentType=content_type
+    )
+    
+    # Generate the public URL for the object
+    object_url = f"https://{bucket_name}.s3.{os.getenv('AWS_REGION', 'us-east-1')}.amazonaws.com/{s3_key}"
+    
+    return {
+        'key': s3_key,
+        'url': object_url,
+    }
+
