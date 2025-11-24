@@ -155,32 +155,47 @@ def generate_random_listing(request):
         
         # Generate image
         image_prompt = f"Generate an image of {name}. Make it look like a product photo for an online marketplace listing, with good lighting and a clean background."
-        image_response = client.responses.create(
-            model="gpt-5",
-            input=image_prompt,
-            tools=[{"type": "image_generation"}]
-        )
-        
         image_url = None
-        if image_response.output:
-            # Extract image data from response (matching user's example)
-            image_data = [
-                output.result
-                for output in image_response.output
-                if output.type == "image_generation_call"
-            ]
+        try:
+            image_response = client.images.generate(
+                model="dall-e-2",
+                prompt=image_prompt,
+                n=1,
+                size="512x512",
+                response_format="b64_json"  # Request base64 JSON format
+            )
             
-            if image_data and image_data[0]:
-                try:
+            print(f"Image response type: {type(image_response)}")
+            print(f"Image response data: {image_response.data if hasattr(image_response, 'data') else 'No data attribute'}")
+            
+            if image_response.data and len(image_response.data) > 0:
+                image_item = image_response.data[0]
+                print(f"Image item keys: {image_item.keys() if hasattr(image_item, 'keys') else dir(image_item)}")
+                
+                # Check for b64_json field
+                if hasattr(image_item, 'b64_json') and image_item.b64_json:
+                    # Extract base64 image data from DALL-E 2 response
+                    image_base64 = image_item.b64_json
+                    
                     # Decode base64 image data
-                    image_base64 = image_data[0]
                     image_bytes = base64.b64decode(image_base64)
                     
                     # Upload to S3
                     image_url = upload_image_data(image_bytes, content_type='image/png', file_extension='png')
-                except Exception as e:
-                    # If image upload fails, continue without image
-                    print(f"Error uploading image to S3: {str(e)}")
+                    print(f"Successfully uploaded image to S3: {image_url}")
+                elif hasattr(image_item, 'url') and image_item.url:
+                    # If URL is returned instead, use it directly
+                    image_url = image_item.url
+                    print(f"Using image URL from response: {image_url}")
+                else:
+                    print(f"Warning: Neither b64_json nor url found in image response. Item: {image_item}")
+            else:
+                print(f"Warning: image_response.data is empty or missing. Response structure: {dir(image_response)}")
+        except Exception as e:
+            # If image generation/upload fails, log the error but continue without image
+            import traceback
+            print(f"Error generating/uploading image: {str(e)}")
+            print(f"Traceback: {traceback.format_exc()}")
         
         # Generate a random price between $5 and $500
         price = round(random.uniform(5.0, 500.0), 2)
