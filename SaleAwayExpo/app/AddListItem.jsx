@@ -14,7 +14,7 @@ import {
 import { router } from 'expo-router';
 import { useDispatch, useSelector } from 'react-redux';
 import { Image } from 'expo-image';
-import { createItem } from '../state/slices/listItemsSlice';
+import { createItem, generateRandomListing } from '../state/slices/listItemsSlice';
 import { pickImageFromLibrary, takePhoto, uploadImageToS3 } from '../utils/imageUpload';
 
 const API_BASE_URL = 'http://3.85.53.16:8000';
@@ -22,6 +22,7 @@ const API_BASE_URL = 'http://3.85.53.16:8000';
 export default function AddListItemScreen() {
   const dispatch = useDispatch();
   const createLoading = useSelector((state) => state.listItems.createLoading);
+  const generateLoading = useSelector((state) => state.listItems.generateLoading);
   const { tokens } = useSelector((state) => state.user);
   const [itemName, setItemName] = useState('');
   const [description, setDescription] = useState('');
@@ -157,6 +158,30 @@ export default function AddListItemScreen() {
     setImageUrl(null);
   };
 
+  const handleGenerateRandom = async () => {
+    try {
+      const generatedData = await dispatch(generateRandomListing()).unwrap();
+      
+      // Populate form fields with generated data
+      setItemName(generatedData.name || '');
+      setDescription(generatedData.description || '');
+      setPrice(generatedData.price?.toString() || '');
+      
+      // If image URL is provided, set it (but we don't have a local image to preview)
+      if (generatedData.image_url) {
+        setImageUrl(generatedData.image_url);
+        // Create a mock image object for preview purposes
+        setSelectedImage({
+          uri: generatedData.image_url,
+          name: 'generated-image.png',
+          type: 'image/png'
+        });
+      }
+    } catch (error) {
+      showAlert('Error', `Failed to generate listing: ${error}`);
+    }
+  };
+
   return (
     <KeyboardAvoidingView 
       style={styles.container} 
@@ -175,6 +200,23 @@ export default function AddListItemScreen() {
         </View>
 
         <View style={styles.form}>
+          <TouchableOpacity
+            style={[styles.generateButton, (generateLoading || createLoading) && styles.generateButtonDisabled]}
+            onPress={handleGenerateRandom}
+            disabled={generateLoading || createLoading}
+          >
+            {generateLoading ? (
+              <>
+                <ActivityIndicator color="white" size="small" style={styles.buttonLoader} />
+                <Text style={styles.generateButtonText}>Generating...</Text>
+              </>
+            ) : (
+              <Text style={styles.generateButtonText}>🎲 Generate Random Listing</Text>
+            )}
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Item Name *</Text>
             <TextInput
@@ -462,5 +504,39 @@ const styles = StyleSheet.create({
     color: 'white',
     marginTop: 8,
     fontSize: 14,
+  },
+  generateButton: {
+    backgroundColor: '#9b59b6',
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 20,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    shadowColor: '#9b59b6',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  generateButtonDisabled: {
+    backgroundColor: '#95a5a6',
+    opacity: 0.6,
+  },
+  generateButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  buttonLoader: {
+    marginRight: 8,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#e1e8ed',
+    marginBottom: 20,
   },
 });
