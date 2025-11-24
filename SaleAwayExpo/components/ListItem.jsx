@@ -1,8 +1,17 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
+import { useDispatch } from 'react-redux';
+import { IconButton } from 'react-native-paper';
+import { deleteItem } from '../state/slices/listItemsSlice';
 
 const ListItem = ({ item }) => {
+  const dispatch = useDispatch();
+
+  const handleDelete = () => {
+    dispatch(deleteItem(item.id));
+  };
+
   return (
     <View style={styles.card}>
       {item.image_url && (
@@ -16,7 +25,16 @@ const ListItem = ({ item }) => {
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.itemName}>{item.name}</Text>
-          <Text style={styles.price}>${parseFloat(item.price).toFixed(2)}</Text>
+          <View style={styles.headerRight}>
+            <Text style={styles.price}>${parseFloat(item.price).toFixed(2)}</Text>
+            <IconButton
+              icon="delete"
+              iconColor="#e74c3c"
+              size={20}
+              onPress={handleDelete}
+              style={styles.deleteButton}
+            />
+          </View>
         </View>
         <Text style={styles.description}>{item.description}</Text>
         <Text style={styles.date}>
@@ -65,10 +83,18 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 10,
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   price: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#27ae60',
+  },
+  deleteButton: {
+    margin: 0,
+    marginLeft: 4,
   },
   description: {
     fontSize: 14,
